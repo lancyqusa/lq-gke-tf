@@ -1,7 +1,7 @@
 locals {
   # lcl_project_id     = "sada-anthos-labs"
-  lcl_network        = google_compute_network.gke_vpc.name
-  lcl_subnetwork     = google_compute_subnetwork.gke_vpc_subnetwork
+  lcl_network    = google_compute_network.gke_vpc.name
+  lcl_subnetwork = google_compute_subnetwork.gke_vpc_subnetwork
   # -- commented 12/29 region             = "us-central1" 
   # -- commented 12/29 lcl_machine_type   = "e2-standard-4"
   # -- commented 12/29 lcl_node_pool_name = "lq-node-pool-01"
@@ -42,16 +42,16 @@ locals {
 
 # Assign minimum set of roles for GKE cluster default compute service account
 module "gke_def_comp_svc_acc" {
-  source        = "terraform-google-modules/service-accounts/google"
-  version       = "~> 3.0"
+  source       = "terraform-google-modules/service-accounts/google"
+  version      = "~> 3.0"
   project_id   = var.gcp_project_id
   display_name = "GKE Default compute service account for nodes"
   prefix       = "gke-clus"
   names        = ["comp-svc-acc-01"]
   project_roles = [
-    "${var.gcp_project_id}=>roles/logging.logWriter", # Minimum set of roles for a GKE service account
-    "${var.gcp_project_id}=>roles/monitoring.metricWriter", # Minimum set of roles for a GKE service account
-    "${var.gcp_project_id}=>roles/monitoring.viewer", # Minimum set of roles for a GKE service account
+    "${var.gcp_project_id}=>roles/logging.logWriter",                   # Minimum set of roles for a GKE service account
+    "${var.gcp_project_id}=>roles/monitoring.metricWriter",             # Minimum set of roles for a GKE service account
+    "${var.gcp_project_id}=>roles/monitoring.viewer",                   # Minimum set of roles for a GKE service account
     "${var.gcp_project_id}=>roles/stackdriver.resourceMetadata.writer", # Minimum set of roles for a GKE service account
   ]
 }
@@ -62,13 +62,13 @@ module "gke_def_comp_svc_acc" {
 
 resource "google_storage_bucket_iam_member" "gcr_io_image_pull_iam" {
   bucket = "artifacts.${var.gcp_project_id}.appspot.com"
-  role = "roles/storage.objectViewer"
+  role   = "roles/storage.objectViewer"
   member = module.gke_def_comp_svc_acc.iam_email
 }
 
 
 resource "google_container_cluster" "gke_cluster_01" {
-### General cluster parameters
+  ### General cluster parameters
   name     = var.gcp_cluster_name
   project  = var.gcp_project_id
   location = var.gcp_region
@@ -78,10 +78,10 @@ resource "google_container_cluster" "gke_cluster_01" {
   description               = "Sandbox GKE cluster"
   node_locations            = ["us-central1-a", "us-central1-b", "us-central1-c"]
   lifecycle {
-  ignore_changes = [
-    node_config["tags"]
-  ]
-}
+    ignore_changes = [
+      node_config["tags"]
+    ]
+  }
   private_cluster_config {
     enable_private_endpoint = true
     master_ipv4_cidr_block  = var.gcp_master_cidr_range # local.lcl_master_ipv4_network
@@ -91,7 +91,7 @@ resource "google_container_cluster" "gke_cluster_01" {
     }
   }
 
-### Cluster networking
+  ### Cluster networking
   networking_mode = "VPC_NATIVE"
   network         = google_compute_network.gke_vpc.self_link
   subnetwork      = google_compute_subnetwork.gke_vpc_subnetwork.self_link
@@ -109,7 +109,7 @@ resource "google_container_cluster" "gke_cluster_01" {
     }
   }
 
-### Cluster options
+  ### Cluster options
   cluster_autoscaling {
     enabled = false
   }
@@ -117,26 +117,26 @@ resource "google_container_cluster" "gke_cluster_01" {
     workload_pool = "${data.google_project.gke_project.project_id}.svc.id.goog" # changed from identity_namespace
   }
 
-### Release channel options
-release_channel {
-  channel = "RAPID"
-}
+  ### Release channel options
+  release_channel {
+    channel = "RAPID"
+  }
 
-### Cluster Node configuration
+  ### Cluster Node configuration
   node_config {
     workload_metadata_config {
       mode = "GKE_METADATA" # This must be enabled only when WL identity is enabled. # Changed from node_metadata = "GKE_METADATA_SERVER"
     }
   }
 
-### Cluster add-ons
-addons_config {
-  http_load_balancing { # Needed for ASM https://cloud.google.com/service-mesh/docs/iap-integration#setting_up_a_cluster_with_anthos_service_mesh
-    disabled = false
+  ### Cluster add-ons
+  addons_config {
+    http_load_balancing { # Needed for ASM https://cloud.google.com/service-mesh/docs/iap-integration#setting_up_a_cluster_with_anthos_service_mesh
+      disabled = false
+    }
   }
-}
 
-### Cluster node pool configuration
+  ### Cluster node pool configuration
   # We can't create a cluster with no node pool defined, but we want to only use
   # separately managed node pools. So we create the smallest possible default
   # node pool and immediately delete it.
@@ -145,35 +145,77 @@ addons_config {
   initial_node_count       = 1 # No. of nodes/zone
   resource_labels = {
     cluster_owner = "lancy_quadros"
-    mesh_id = "proj-${data.google_project.gke_project.number}"
+    mesh_id       = "proj-${data.google_project.gke_project.number}"
   }
 }
 
 resource "google_container_node_pool" "gke_node_pool_01" {
   name              = var.gcp_gke_node_pool_name # local.lcl_node_pool_name
-  provider = google-beta
+  provider          = google-beta
   cluster           = google_container_cluster.gke_cluster_01.id
   node_count        = 1
   max_pods_per_node = var.gcp_max_pods_per_node # local.lcl_max_pods_per_node
 
-    lifecycle {
-      ignore_changes = [
-        node_config["tags"],cluster,
-      ]
-    }
-
+  lifecycle {
+    ignore_changes = [
+      node_config["tags"], cluster,
+    ]
+  }
+  autoscaling {
+    min_node_count = 1
+    max_node_count = 3
+  }
   node_config {
     preemptible  = false
     image_type   = "COS_CONTAINERD"
     disk_size_gb = 50
     machine_type = var.gcp_gke_node_machine_type # local.lcl_machine_type
 
-    tags = [ local.lcl_nodes_network_tag ]
-    
+    tags = [local.lcl_nodes_network_tag]
+
     labels = {
       cluster        = google_container_cluster.gke_cluster_01.name,
       node_pool_name = var.gcp_gke_node_pool_name # local.lcl_node_pool_name
     }
+
+    # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
+    service_account = module.gke_def_comp_svc_acc.email
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+  }
+}
+
+resource "google_container_node_pool" "gke_node_pool_02" {
+  name              = "gke-node-pool-02" # local.lcl_node_pool_name
+  provider          = google-beta
+  cluster           = google_container_cluster.gke_cluster_01.id
+  node_count        = 1
+  max_pods_per_node = var.gcp_max_pods_per_node # local.lcl_max_pods_per_node
+
+  lifecycle {
+    ignore_changes = [
+      node_config["tags"], cluster,
+    ]
+  }
+  autoscaling {
+    min_node_count = 1
+    max_node_count = 3
+  }
+  node_config {
+    preemptible  = false
+    image_type   = "COS_CONTAINERD"
+    disk_size_gb = 50
+    machine_type = var.gcp_gke_node_machine_type # local.lcl_machine_type
+
+    tags = [local.lcl_nodes_network_tag]
+
+    labels = {
+      cluster        = google_container_cluster.gke_cluster_01.name,
+      node_pool_name = var.gcp_gke_node_pool_name # local.lcl_node_pool_name
+    }
+
+
 
     # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
     service_account = module.gke_def_comp_svc_acc.email

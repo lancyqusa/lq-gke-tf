@@ -58,12 +58,12 @@ resource "google_compute_router_nat" "gke_nat_router" {
 }
 
 resource "google_compute_firewall" "allow_iap_ssh_to_bastion_nodes" {
-  name = "${google_compute_instance.gke_bastion_vm.name}-${google_container_cluster.gke_cluster_01.name}-allow-iap"
+  name    = "${google_compute_instance.gke_bastion_vm.name}-${google_container_cluster.gke_cluster_01.name}-allow-iap"
   network = google_compute_network.gke_vpc.name
   allow {
     protocol = "tcp"
-    ports = ["22"]
+    ports    = ["22"]
   }
   source_ranges = ["35.235.240.0/20"]
-  target_tags = [local.lcl_bastion_vm_nw_tag, local.lcl_nodes_network_tag]
+  target_tags   = [local.lcl_bastion_vm_nw_tag, local.lcl_nodes_network_tag]
 }
