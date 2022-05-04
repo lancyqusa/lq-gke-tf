@@ -67,3 +67,14 @@ resource "google_compute_firewall" "allow_iap_ssh_to_bastion_nodes" {
   source_ranges = ["35.235.240.0/20"]
   target_tags   = [local.lcl_bastion_vm_nw_tag, local.lcl_nodes_network_tag]
 }
+
+resource "google_compute_firewall" "allow_nginx_webhook_from_cp" {
+  name    = "${google_container_cluster.gke_cluster_01.name}-allow-nginx-webhook-from-cp"
+  network = google_compute_network.gke_vpc.name
+  allow {
+    protocol = "tcp"
+    ports    = ["8443"]
+  }
+  source_ranges = [local.lcl_gcp_cp_cidr_range]
+  target_tags   = [local.lcl_nodes_network_tag]
+}

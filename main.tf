@@ -1,7 +1,8 @@
 locals {
   # lcl_project_id     = "sada-anthos-labs"
-  lcl_network    = google_compute_network.gke_vpc.name
-  lcl_subnetwork = google_compute_subnetwork.gke_vpc_subnetwork
+  lcl_network           = google_compute_network.gke_vpc.name
+  lcl_subnetwork        = google_compute_subnetwork.gke_vpc_subnetwork
+  lcl_gcp_cp_cidr_range = join(".", [element(split(".", data.google_container_cluster.my_cluster.endpoint), 0), element(split(".", data.google_container_cluster.my_cluster.endpoint), 1), element(split(".", data.google_container_cluster.my_cluster.endpoint), 2), "0/28"])
   # -- commented 12/29 region             = "us-central1" 
   # -- commented 12/29 lcl_machine_type   = "e2-standard-4"
   # -- commented 12/29 lcl_node_pool_name = "lq-node-pool-01"
@@ -119,7 +120,7 @@ resource "google_container_cluster" "gke_cluster_01" {
 
   ### Release channel options
   release_channel {
-    channel = "RAPID"
+    channel = "REGULAR"
   }
 
   ### Cluster Node configuration
@@ -158,7 +159,8 @@ resource "google_container_node_pool" "gke_node_pool_01" {
 
   lifecycle {
     ignore_changes = [
-      node_config["tags"], cluster,
+      # node_config["tags"], 
+      cluster,
     ]
   }
   autoscaling {
@@ -186,41 +188,11 @@ resource "google_container_node_pool" "gke_node_pool_01" {
   }
 }
 
-resource "google_container_node_pool" "gke_node_pool_02" {
-  name              = "gke-node-pool-02" # local.lcl_node_pool_name
-  provider          = google-beta
-  cluster           = google_container_cluster.gke_cluster_01.id
-  node_count        = 1
-  max_pods_per_node = var.gcp_max_pods_per_node # local.lcl_max_pods_per_node
-
-  lifecycle {
-    ignore_changes = [
-      node_config["tags"], cluster,
-    ]
-  }
-  autoscaling {
-    min_node_count = 1
-    max_node_count = 3
-  }
-  node_config {
-    preemptible  = false
-    image_type   = "COS_CONTAINERD"
-    disk_size_gb = 50
-    machine_type = var.gcp_gke_node_machine_type # local.lcl_machine_type
-
-    tags = [local.lcl_nodes_network_tag]
-
-    labels = {
-      cluster        = google_container_cluster.gke_cluster_01.name,
-      node_pool_name = var.gcp_gke_node_pool_name # local.lcl_node_pool_name
-    }
-
-
-
-    # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
-    service_account = module.gke_def_comp_svc_acc.email
-    oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
-    ]
-  }
+module "custom-node-pool" {
+  source                           = "./modules/cluster-custom-node-pool"
+  gcp_project_id                   = var.gcp_project_id
+  gcp_region                       = var.gcp_region
+  gcp_cluster_id                   = google_container_cluster.gke_cluster_01.id
+  gcp_custom_node_pools_object     = var.gcp_custom_node_pools_object
+  gcp_custom_node_pool_autoscaling = var.gcp_custom_node_pool_autoscaling
 }
