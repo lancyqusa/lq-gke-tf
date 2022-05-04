@@ -188,11 +188,14 @@ resource "google_container_node_pool" "gke_node_pool_01" {
   }
 }
 
-module "custom-node-pool" {
-  source                           = "./modules/cluster-custom-node-pool"
-  gcp_project_id                   = var.gcp_project_id
-  gcp_region                       = var.gcp_region
-  gcp_cluster_id                   = google_container_cluster.gke_cluster_01.id
-  gcp_custom_node_pools_object     = var.gcp_custom_node_pools_object
-  gcp_custom_node_pool_autoscaling = var.gcp_custom_node_pool_autoscaling
-}
+# module "custom-node-pool" {
+#   source                           = "./modules/cluster-custom-node-pool"
+#   gcp_project_id                   = var.gcp_project_id
+#   gcp_region                       = var.gcp_region
+#   gcp_labels = {
+#     cluster = google_container_cluster.gke_cluster_01.name
+#   }
+#   gcp_cluster_id                   = google_container_cluster.gke_cluster_01.id
+#   gcp_custom_node_pools_object     = var.gcp_custom_node_pools_object
+#   gcp_custom_node_pool_autoscaling = var.gcp_custom_node_pool_autoscaling
+# }

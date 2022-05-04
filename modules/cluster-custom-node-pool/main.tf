@@ -30,14 +30,14 @@ resource "google_container_node_pool" "custom_node_pool" {
     local_ssd_count = each.value.local_ssd_count
     machine_type    = each.value.machine_type
     tags            = each.value.tags
-    labels          = each.value.labels
+    labels          = var.gcp_labels
     service_account = each.value.service_account
     oauth_scopes    = each.value.oauth_scopes
   }
 
   lifecycle {
     ignore_changes = [
-      node_config["tags"],
+#      node_config["tags"], ## Uncomment this if if you want TF to disregard any changes to tags after creating the resource
       cluster,
     ]
   }

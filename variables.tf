@@ -91,6 +91,10 @@ variable "gcp_gke_node_pool_name" {
 
 ## Custom node pool vars ** STARTS **
 
+variable "gcp_labels" {
+  type = map
+}
+
 variable "gcp_custom_node_pools_object" {
   type = map(object({
     node_count        = number
@@ -105,10 +109,6 @@ variable "gcp_custom_node_pools_object" {
     autoscaling       = bool
     min_node_count    = number
     max_node_count    = number
-    labels = object({
-      cluster        = string
-      node_pool_name = string
-    })
     service_account = string
     oauth_scopes    = list(string)
   }))

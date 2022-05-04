@@ -1,4 +1,5 @@
 gcp_region = "us-central1"
+gcp_labels = {}
 gcp_custom_node_pools_object = {
   "custom-pool" = {
     node_count        = 1
@@ -13,17 +14,13 @@ gcp_custom_node_pools_object = {
     autoscaling       = true
     min_node_count    = 1
     max_node_count    = 1
-    labels = {
-      cluster        = "cluster-name-label-01"
-      node_pool_name = "custom-pool-label-01"
-    }
     service_account = "gke-clus-comp-svc-acc-01@lq-sada-kms-demo.iam.gserviceaccount.com"
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
     ]
   },
   "other-pool" = {
-    node_count        = 1
+    node_count        = 2
     max_pods_per_node = 30
     preemptible       = false
     image_type        = "COS_CONTAINERD"
@@ -35,10 +32,6 @@ gcp_custom_node_pools_object = {
     autoscaling       = false
     min_node_count    = 1
     max_node_count    = 1
-    labels = {
-      cluster        = "cluster-name-label"
-      node_pool_name = "other-pool-label-01"
-    }
     service_account = "gke-clus-comp-svc-acc-01@lq-sada-kms-demo.iam.gserviceaccount.com"
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"

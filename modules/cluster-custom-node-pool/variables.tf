@@ -5,6 +5,11 @@ variable "node_locations" {
   type    = list(string)
   default = ["us-central1-c", "us-central1-a", "us-central1-b"]
 }
+variable "gcp_labels" {
+  type = map
+  description = "Kubernetes labels that should be applied to the nodes in the node pool"
+  default = null
+}
 
 variable "gcp_custom_node_pools_object" {
   type = map(object({
@@ -20,10 +25,6 @@ variable "gcp_custom_node_pools_object" {
     autoscaling       = bool
     min_node_count    = number
     max_node_count    = number
-    labels = object({
-      cluster        = string
-      node_pool_name = string
-    })
     service_account = string
     oauth_scopes    = list(string)
   }))
